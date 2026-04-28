@@ -206,7 +206,7 @@
         // 配置版本号：每次更新配置后请递增此版本号
         // 系统会自动检测版本变化，强制更新localStorage缓存
         // ================================================
-        const PRICE_CONFIG_VERSION = '20260428.12';  // 日期+小版本号
+        const PRICE_CONFIG_VERSION = '20260428.13';  // 日期+小版本号
         const defaultPriceMap = {
             // ===== 0元 免费课/导学课/会员专属（共25条） =====
             '妙学公考【行测回放版】【会员专属】': 0,
@@ -722,12 +722,14 @@
                 const name = row[finalCourseCol];
                 const currentPrice = row[finalPriceCol];
                 
-                // ========== 核心优化：只处理价格为 null 的行 ==========
-                // 只有严格等于 null 才处理，其他所有情况都跳过：
-                // 0 / '' / undefined / 已有任何价格 → 都跳过
-                if (currentPrice !== null) {
+                // ========== 核心优化：只处理价格真正为空的行 ==========
+                // Excel空单元格解析：空字符串"" / null / undefined
+                // 跳过规则：有真实价格（数字）就跳过，包括0
+                // 只处理：空字符串"" / null / undefined
+                const hasAnyPrice = typeof currentPrice === 'number';
+                if (hasAnyPrice) {
                     skipCount++;
-                    return;  // 跳过，不处理
+                    return;  // 有任何价格数字（包括0），跳过
                 }
                 
                 // 只有价格为空的行才进行匹配
@@ -769,8 +771,8 @@
             const matchRate = processedRows > 0 ? ((updateCount / processedRows) * 100).toFixed(1) : 100;
             
             log.textContent += `   📊 数据概览: 共 ${totalRows} 行\n`;
-            log.textContent += `   ⏭️  非null价格跳过: ${skipCount} 行 (含0/已有价格)\n`;
-            log.textContent += `   🎯 需处理 (price=null): ${processedRows} 行\n`;
+            log.textContent += `   ⏭️  有价格跳过: ${skipCount} 行 (含0/已有价格)\n`;
+            log.textContent += `   🎯 空单元格待处理: ${processedRows} 行\n`;
             log.textContent += `   ✅ 匹配成功: ${updateCount} 行\n`;
             log.textContent += `   📈 匹配率: ${matchRate}%\n`;
             if (fuzzyMatchCount > 0) {
