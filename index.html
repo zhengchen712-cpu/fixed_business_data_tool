@@ -568,18 +568,53 @@
             // 解析价格配置
             const priceConfig = parseUserConfig();
             const currentPriceMap = priceConfig.map;
+            
+            // ========== 🔧 智能匹配引擎 v2.0 ==========
+            // 规范化函数：去除所有干扰字符，提高匹配率
+            function normalizeName(name) {
+                if (!name) return '';
+                return String(name)
+                    .trim()                           // 去除首尾空格
+                    .replace(/\s+/g, '')             // 去除所有空格（中间的也去掉）
+                    .replace(/[""'']/g, '')          // 去除所有引号（中文/英文）
+                    .replace(/[()（）]/g, '')         // 去除括号
+                    .replace(/[-_—]/g, '')           // 去除横线
+                    .replace(/\n/g, '')              // 去除换行符
+                    .toLowerCase();                    // 统一小写
+            }
+            
+            // 构建规范化后的匹配表（key=规范化名称，value=原价）
+            const normalizedMap = {};
+            for (const [name, price] of Object.entries(currentPriceMap)) {
+                const key = normalizeName(name);
+                if (!normalizedMap[key]) {
+                    normalizedMap[key] = price;
+                }
+            }
+            
             if (priceConfig.isUser) {
                 log.textContent += `   使用自定义价格配置,共 ${priceConfig.count} 条规则\n`;
             } else {
                 log.textContent += `   使用默认价格配置,共 ${priceConfig.count} 条规则\n`;
             }
-            // 批量更新价格
+            log.textContent += `   🚀 智能模糊匹配引擎已启动\n`;
+            
+            // 批量更新价格 + 统计未匹配课程
             let updateCount = 0;
+            const unmatchedCourses = {};  // 统计未匹配的课程及出现次数
+            
             data.forEach(row => {
                 const name = row[finalCourseCol];
-                if (name && currentPriceMap[name]) {
-                    row[finalPriceCol] = currentPriceMap[name];
-                    updateCount++;
+                if (name) {
+                    const normalizedName = normalizeName(name);
+                    if (normalizedMap[normalizedName]) {
+                        row[finalPriceCol] = normalizedMap[normalizedName];
+                        updateCount++;
+                    } else {
+                        // 统计未匹配的课程，方便后续补充
+                        const rawName = String(name).trim().substring(0, 80);  // 限制长度
+                        unmatchedCourses[rawName] = (unmatchedCourses[rawName] || 0) + 1;
+                    }
                 }
             });
             if (isDateFilter) {
@@ -587,6 +622,25 @@
             } else {
                 log.textContent += `8. 已更新 ${updateCount} 条课程价格\n`;
             }
+            
+            // ========== 📊 未匹配课程统计 ==========
+            const totalRows = data.length;
+            const matchRate = ((updateCount / totalRows) * 100).toFixed(1);
+            log.textContent += `   📈 匹配率: ${matchRate}% (${updateCount}/${totalRows})\n`;
+            
+            // 输出未匹配最多的TOP课程（方便补充价格表）
+            const unmatchedList = Object.entries(unmatchedCourses)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 15);  // 显示前15个
+            
+            if (unmatchedList.length > 0) {
+                log.textContent += `\n---\n⚠️ 未匹配课程 TOP ${unmatchedList.length}（出现次数）：\n`;
+                unmatchedList.forEach(([name, count], idx) => {
+                    log.textContent += `${(idx + 1).toString().padStart(2)}. ${count}次 → ${name}\n`;
+                });
+                log.textContent += `\n💡 建议：把上面这些课程的价格补充到配置表中，下次就能自动匹配了！`;
+            }
+            
             updateProgress(90);
             // 🔍 自我复查:检查数据是否正确
             log.textContent += "\n---\n🔍 系统自我复查中...\n";
