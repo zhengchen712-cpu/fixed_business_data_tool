@@ -206,7 +206,7 @@
         // 配置版本号：每次更新配置后请递增此版本号
         // 系统会自动检测版本变化，强制更新localStorage缓存
         // ================================================
-        const PRICE_CONFIG_VERSION = '20260428.13';  // 日期+小版本号
+        const PRICE_CONFIG_VERSION = '20260428.14';  // 日期+小版本号
         const defaultPriceMap = {
             // ===== 0元 免费课/导学课/会员专属（共25条） =====
             '妙学公考【行测回放版】【会员专属】': 0,
@@ -711,6 +711,13 @@
                 log.textContent += `   使用默认价格配置,共 ${priceConfig.count} 条规则\n`;
             }
             log.textContent += `   🚀 智能模糊匹配引擎已启动\n`;
+            
+            // ========== 🧪 调试信息：打印前10行价格列的真实值和类型 ==========
+            log.textContent += `\n---\n🧪 调试：前10行价格列的真实值和类型\n`;
+            for (let i = 0; i < Math.min(10, data.length); i++) {
+                const price = data[i][finalPriceCol];
+                log.textContent += `  行${i + 1}: value=${JSON.stringify(price)}, type=${typeof price}\n`;
+            }
             
             // 批量更新价格 + 统计未匹配课程
             let updateCount = 0;
