@@ -206,7 +206,7 @@
         // 配置版本号：每次更新配置后请递增此版本号
         // 系统会自动检测版本变化，强制更新localStorage缓存
         // ================================================
-        const PRICE_CONFIG_VERSION = '20260428.9';  // 日期+小版本号
+        const PRICE_CONFIG_VERSION = '20260428.10';  // 日期+小版本号
         const defaultPriceMap = {
             // ===== 0元 免费课/导学课/会员专属（共25条） =====
             '妙学公考【行测回放版】【会员专属】': 0,
@@ -293,6 +293,16 @@
             '省考公务员考试轻松学题库套装（行测5000题+申论100题）': 0,
             '三支一扶公基考点速记800条': 0,
             '巧学公基思维导图': 0,
+            
+            // ===== 新增：第七批未匹配课程 =====
+            '2026年事业单位招聘考试深度系统班-职测': 580,
+            '三支一扶挑战70分考点实战运用行测5190题': 0,
+            '社区考试专业知识700题（电子版资料可下载）': 0,
+            '技巧精讲': 0,
+            '2026年教师资格证考试专用（幼儿园）图书+历年试题*试卷套装：保教知识与能力+综合素质': 0,
+            '2026版JD文职·公共科目精选课程': 0,
+            '2027年省考1对1私教导师定制班': 0,
+            '2026甘肃省选拔普通高校毕业生基层服务考试用书·公共基础知识图书+历年（三支一扶）': 0,
             
             // ===== 50元 档 =====
             '2026年上半年教师资格笔试冲刺点睛班': 49,
@@ -751,16 +761,20 @@
             
             // 输出未匹配最多的TOP课程（方便补充价格表）
             const unmatchedList = Object.entries(unmatchedCourses)
-                .sort((a, b) => b[1] - a[1])
-                .slice(0, 15);  // 显示前15个
+                .sort((a, b) => b[1] - a[1]);  // 显示全部，不再只显示前15个
             
             if (unmatchedList.length > 0) {
-                log.textContent += `\n---\n⚠️ 未匹配课程 TOP ${unmatchedList.length}（出现次数）：\n`;
+                log.textContent += `\n---\n⚠️ 所有未匹配课程（共 ${unmatchedList.length} 个，按出现次数排序）：\n`;
                 unmatchedList.forEach(([name, count], idx) => {
-                    log.textContent += `${(idx + 1).toString().padStart(2)}. ${count}次 → ${name}\n`;
-                    log.textContent += `    规范化后: ${normalizeName(name)}\n`;  // 显示规范化结果
+                    log.textContent += `${(idx + 1).toString().padStart(3)}. ${count}次 → ${name}\n`;
                 });
-                log.textContent += `\n💡 建议：把上面这些课程的价格补充到配置表中，下次就能自动匹配了！`;
+                
+                // 生成所有未匹配课程的纯文本列表（一键复制用）
+                const allUnmatchedNames = unmatchedList.map(([name]) => name).join('\n');
+                
+                log.textContent += `\n---\n📋 【一键复制】所有未匹配课程名称（共 ${unmatchedList.length} 个）：\n`;
+                log.textContent += allUnmatchedNames;
+                log.textContent += `\n\n💡 把上面的课程名称全部复制发给开发者，一次性批量添加搞定！`;
             }
             
             updateProgress(90);
