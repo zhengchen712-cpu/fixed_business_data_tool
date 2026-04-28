@@ -206,7 +206,7 @@
         // 配置版本号：每次更新配置后请递增此版本号
         // 系统会自动检测版本变化，强制更新localStorage缓存
         // ================================================
-        const PRICE_CONFIG_VERSION = '20260428.14';  // 日期+小版本号
+        const PRICE_CONFIG_VERSION = '20260428.15';  // 日期+小版本号
         const defaultPriceMap = {
             // ===== 0元 免费课/导学课/会员专属（共25条） =====
             '妙学公考【行测回放版】【会员专属】': 0,
@@ -533,7 +533,8 @@
             const isDateFilter = mode === 'dateFilter';
 
             const ws = workbook.Sheets[workbook.SheetNames[0]];
-            let json = XLSX.utils.sheet_to_json(ws, { header: 1 });
+            // defval: null = 空单元格保持为 null，不要自动转成0
+            let json = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null });
             const header = json[0];
             let data = json.slice(1);
             if (isDateFilter) {
@@ -729,14 +730,13 @@
                 const name = row[finalCourseCol];
                 const currentPrice = row[finalPriceCol];
                 
-                // ========== 核心优化：只处理价格真正为空的行 ==========
-                // Excel空单元格解析：空字符串"" / null / undefined
-                // 跳过规则：有真实价格（数字）就跳过，包括0
-                // 只处理：空字符串"" / null / undefined
-                const hasAnyPrice = typeof currentPrice === 'number';
-                if (hasAnyPrice) {
+                // ========== 核心优化：只处理价格为 null 的行 ==========
+                // SheetJS defval:null 选项让空单元格保持为null
+                // 0 / 其他数字 = 有价格，跳过
+                // null = 真正的空单元格，需要匹配填充
+                if (currentPrice !== null) {
                     skipCount++;
-                    return;  // 有任何价格数字（包括0），跳过
+                    return;  // 不是null（0/有价格），都跳过
                 }
                 
                 // 只有价格为空的行才进行匹配
@@ -778,8 +778,8 @@
             const matchRate = processedRows > 0 ? ((updateCount / processedRows) * 100).toFixed(1) : 100;
             
             log.textContent += `   📊 数据概览: 共 ${totalRows} 行\n`;
-            log.textContent += `   ⏭️  有价格跳过: ${skipCount} 行 (含0/已有价格)\n`;
-            log.textContent += `   🎯 空单元格待处理: ${processedRows} 行\n`;
+            log.textContent += `   ⏭️  跳过 (price!==null): ${skipCount} 行 (含0/已有价格)\n`;
+            log.textContent += `   🎯 待处理 (price=null): ${processedRows} 行\n`;
             log.textContent += `   ✅ 匹配成功: ${updateCount} 行\n`;
             log.textContent += `   📈 匹配率: ${matchRate}%\n`;
             if (fuzzyMatchCount > 0) {
