@@ -201,8 +201,12 @@
         const downloadBtn = document.getElementById('downloadBtn');
         const progressBar = document.getElementById('progressBar');
         const progressFill = document.getElementById('progressFill');
-        // 默认课程价格映射表（2026-04-28 v2.2 智能匹配增强版）
-        // 总数：55条 | 已去重 | 按价格升序排列 | 规范化匹配率99%+
+        // ================================================
+        // 默认课程价格映射表 v20260428.3
+        // 配置版本号：每次更新配置后请递增此版本号
+        // 系统会自动检测版本变化，强制更新localStorage缓存
+        // ================================================
+        const PRICE_CONFIG_VERSION = '20260428.3';  // 日期+小版本号
         const defaultPriceMap = {
             // ===== 0元 免费课/导学课/会员专属 =====
             '妙学公考【行测回放版】【会员专属】': 0,
@@ -331,15 +335,25 @@
                 }
                 return text;
             }
-            // 页面加载时,读取本地保存的配置,如果没有,就用新的默认配置
-            const savedConfig = localStorage.getItem('savedPriceConfig');
+            // 页面加载时：版本检测 + 自动更新配置
+            const savedVersion = localStorage.getItem('priceConfigVersion');
             const defaultText = getDefaultConfigText();
-            if (savedConfig === null || savedConfig === '') {
-                // 第一次打开,或者之前是空的,自动加载新的默认配置
+            
+            // 版本不一致，强制重置为最新默认配置
+            if (savedVersion !== PRICE_CONFIG_VERSION) {
                 textarea.value = defaultText;
                 localStorage.setItem('savedPriceConfig', defaultText);
+                localStorage.setItem('priceConfigVersion', PRICE_CONFIG_VERSION);
+                console.log(`🔄 配置已自动更新到版本: ${PRICE_CONFIG_VERSION}`);
             } else {
-                textarea.value = savedConfig;
+                // 版本一致，用本地保存的配置
+                const savedConfig = localStorage.getItem('savedPriceConfig');
+                if (savedConfig === null || savedConfig === '') {
+                    textarea.value = defaultText;
+                    localStorage.setItem('savedPriceConfig', defaultText);
+                } else {
+                    textarea.value = savedConfig;
+                }
             }
             // 输入时自动保存到本地
             textarea.addEventListener('input', function() {
@@ -349,8 +363,10 @@
             document.getElementById('loadDefault').addEventListener('click', function() {
                 const text = getDefaultConfigText();
                 textarea.value = text;
-                // 保存到本地
+                // 保存到本地并更新版本号
                 localStorage.setItem('savedPriceConfig', text);
+                localStorage.setItem('priceConfigVersion', PRICE_CONFIG_VERSION);
+                alert(`✅ 已重置为最新默认配置！\n版本: ${PRICE_CONFIG_VERSION}\n课程数: ${Object.keys(defaultPriceMap).length} 条`);
             });
             // 清空配置
             document.getElementById('clearConfig').addEventListener('click', function() {
