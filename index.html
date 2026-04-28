@@ -617,19 +617,34 @@
             
             // 批量更新价格 + 统计未匹配课程
             let updateCount = 0;
+            let fuzzyMatchCount = 0;  // 关键词模糊匹配命中数
             const unmatchedCourses = {};  // 统计未匹配的课程及出现次数
             
             data.forEach(row => {
                 const name = row[finalCourseCol];
                 if (name) {
+                    // 第一级：精确规范化匹配
                     const normalizedName = normalizeName(name);
                     if (normalizedMap[normalizedName]) {
                         row[finalPriceCol] = normalizedMap[normalizedName];
                         updateCount++;
                     } else {
-                        // 统计未匹配的课程，方便后续补充
-                        const rawName = String(name).trim().substring(0, 80);  // 限制长度
-                        unmatchedCourses[rawName] = (unmatchedCourses[rawName] || 0) + 1;
+                        // 第二级：关键词包含匹配（终极兜底）
+                        let matched = false;
+                        for (const [keyName, price] of Object.entries(normalizedMap)) {
+                            if (normalizedName.includes(keyName) || keyName.includes(normalizedName)) {
+                                row[finalPriceCol] = price;
+                                updateCount++;
+                                fuzzyMatchCount++;
+                                matched = true;
+                                break;
+                            }
+                        }
+                        // 两级都没匹配上，才统计到未匹配
+                        if (!matched) {
+                            const rawName = String(name).trim().substring(0, 80);
+                            unmatchedCourses[rawName] = (unmatchedCourses[rawName] || 0) + 1;
+                        }
                     }
                 }
             });
@@ -643,6 +658,9 @@
             const totalRows = data.length;
             const matchRate = ((updateCount / totalRows) * 100).toFixed(1);
             log.textContent += `   📈 匹配率: ${matchRate}% (${updateCount}/${totalRows})\n`;
+            if (fuzzyMatchCount > 0) {
+                log.textContent += `   🎯 关键词模糊匹配命中: ${fuzzyMatchCount} 条\n`;
+            }
             
             // 输出未匹配最多的TOP课程（方便补充价格表）
             const unmatchedList = Object.entries(unmatchedCourses)
@@ -653,6 +671,7 @@
                 log.textContent += `\n---\n⚠️ 未匹配课程 TOP ${unmatchedList.length}（出现次数）：\n`;
                 unmatchedList.forEach(([name, count], idx) => {
                     log.textContent += `${(idx + 1).toString().padStart(2)}. ${count}次 → ${name}\n`;
+                    log.textContent += `    规范化后: ${normalizeName(name)}\n`;  // 显示规范化结果
                 });
                 log.textContent += `\n💡 建议：把上面这些课程的价格补充到配置表中，下次就能自动匹配了！`;
             }
