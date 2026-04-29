@@ -1,486 +1,808 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>商机数据自动处理工具 - AGI188</title>
-<style>
-*{box-sizing:border-box;margin:0;padding:0}
-:root{--bg:#000;--text:#f5f5f7;--sub:#86868b;--dim:#48484a;--blue:#2997ff;--purple:#bf5af2;--border:#333;--success:#30d158;--warning:#ffd60a;--error:#ff453a}
-html{scroll-behavior:smooth}
-body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Helvetica Neue','Microsoft YaHei',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>商机数据自动处理工具(修复版)</title>
+    <script src="https://unpkg.com/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <style>
+        * {box-sizing:border-box;margin:0;padding:0}
+        :root{--bg:#000;--text:#f5f5f7;--sub:#86868b;--dim:#48484a;--blue:#2997ff;--purple:#bf5af2;--border:#333;--success:#30d158;--warning:#ffd60a;--error:#ff453a}
+        html{scroll-behavior:smooth}
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', 'Microsoft YaHei', sans-serif;
+            max-width: 960px;
+            margin: 0 auto;
+            padding: 100px 24px 80px;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+        }
 
-/* 导航 */
-.nav{position:fixed;top:0;left:0;right:0;z-index:99;background:rgba(0,0,0,0.72);backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px);border-bottom:1px solid rgba(255,255,255,0.04)}
-.nav-in{max-width:960px;margin:0 auto;padding:0 24px;height:48px;display:flex;justify-content:space-between;align-items:center}
-.nav-brand{font-size:16px;font-weight:700;letter-spacing:0.02em;text-decoration:none;background:linear-gradient(135deg,var(--blue),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-.nav-r{display:flex;align-items:center;gap:20px;list-style:none}
-.nav-r a{font-size:12px;color:var(--sub);text-decoration:none;transition:color 0.2s}
-.nav-r a:hover{color:var(--text)}
+        /* 导航 */
+        .nav{position:fixed;top:0;left:0;right:0;z-index:99;background:rgba(0,0,0,0.72);backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px);border-bottom:1px solid rgba(255,255,255,0.04)}
+        .nav-in{max-width:960px;margin:0 auto;padding:0 24px;height:48px;display:flex;justify-content:space-between;align-items:center}
+        .nav-brand{font-size:16px;font-weight:700;letter-spacing:0.02em;text-decoration:none;background:linear-gradient(135deg,var(--blue),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+        .nav-r{display:flex;align-items:center;gap:20px;list-style:none}
+        .nav-r a{font-size:12px;color:var(--sub);text-decoration:none;transition:color 0.2s}
+        .nav-r a:hover{color:var(--text)}
 
-/* 主内容区 */
-.main{max-width:960px;margin:0 auto;padding:100px 24px 80px}
+        h1 {
+            font-size: 40px;
+            font-weight: 700;
+            letter-spacing: -0.03em;
+            margin-bottom: 8px;
+            text-align: center;
+            background: linear-gradient(180deg,#f5f5f7,#a1a1a6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .subtitle {
+            color: var(--sub);
+            text-align: center;
+            margin-bottom: 48px;
+            font-size: 17px;
+        }
+        .btn {
+            display: block;
+            width: 100%;
+            padding: 16px;
+            border: none;
+            border-radius: 980px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 15px 0;
+            transition: all 0.3s ease;
+            font-weight: 600;
+            letter-spacing: 0.02em;
+        }
+        .btn-upload {
+            background: linear-gradient(135deg,var(--blue),var(--purple));
+            color: #fff;
+        }
+        .btn-upload:hover {
+            box-shadow: 0 8px 30px rgba(41,151,255,0.25);
+            transform: translateY(-1px);
+        }
+        .btn-download {
+            background: var(--success);
+            color: #000;
+            display: none;
+        }
+        .btn-download:hover {
+            box-shadow: 0 8px 30px rgba(48,209,88,0.25);
+            transform: translateY(-1px);
+        }
+        .log {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid var(--border);
+            padding: 24px;
+            border-radius: 20px;
+            margin-top: 20px;
+            min-height: 120px;
+            white-space: pre-wrap;
+            font-size: 13px;
+            color: var(--text);
+            line-height: 1.8;
+            font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+            border: 1px solid #2d2d4a;
+            font-family: 'Consolas', monospace;
+        }
+        #fileInput {
+            display: none;
+        }
+        .features {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            margin: 32px 0;
+        }
+        .feature-item {
+            background: rgba(255,255,255,0.03);
+            padding: 16px 12px;
+            border-radius: 12px;
+            text-align: center;
+            font-size: 13px;
+            color: var(--text);
+            border: 1px solid var(--border);
+            transition: all 0.3s;
+        }
+        .feature-item:hover {
+            border-color: rgba(41,151,255,0.2);
+        }
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: var(--border);
+            border-radius: 100px;
+            margin: 10px 0;
+            overflow: hidden;
+            display: none;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--blue), var(--purple));
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        .tip {
+            text-align: center;
+            color: var(--dim);
+            font-size: 12px;
+            margin-top: 20px;
+        }
+        /* 深色模式下的表单样式 */
+        input[type="radio"] {
+            accent-color: var(--blue);
+        }
+        textarea {
+            background: rgba(0,0,0,0.3) !important;
+            border: 1px solid var(--border) !important;
+            color: var(--text) !important;
+        }
+        textarea::placeholder {
+            color: var(--dim) !important;
+        }
 
-/* 头部 */
-.hero{text-align:center;margin-bottom:48px}
-.hero-icon{font-size:64px;margin-bottom:16px}
-.hero h1{font-size:40px;font-weight:700;letter-spacing:-0.03em;margin-bottom:8px;background:linear-gradient(180deg,#f5f5f7,#a1a1a6);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-.hero p{font-size:17px;color:var(--sub)}
-
-/* 上传区域 */
-.upload-zone{background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:20px;padding:48px;text-align:center;margin-bottom:32px;transition:all 0.4s cubic-bezier(0.25,0.1,0.25,1)}
-.upload-zone:hover{border-color:rgba(41,151,255,0.3)}
-.upload-zone.dragover{border-color:var(--blue);background:rgba(41,151,255,0.06)}
-.upload-icon{font-size:48px;margin-bottom:16px}
-.upload-zone h3{font-size:20px;font-weight:600;margin-bottom:8px}
-.upload-zone p{font-size:14px;color:var(--sub);margin-bottom:20px}
-.file-btn{display:inline-block;padding:12px 28px;border:none;border-radius:980px;background:linear-gradient(135deg,var(--blue),var(--purple));color:#fff;font-size:15px;font-weight:600;cursor:pointer;transition:all 0.3s;letter-spacing:0.02em}
-.file-btn:hover{box-shadow:0 8px 30px rgba(41,151,255,0.25);transform:translateY(-1px)}
-#fileInput{display:none}
-
-/* 状态标签 */
-.tag{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:100px;font-size:11px;font-weight:500}
-.tag.on{background:rgba(48,209,88,0.1);color:var(--success)}
-.tag.warn{background:rgba(255,214,10,0.1);color:var(--warning)}
-.tag.err{background:rgba(255,69,58,0.1);color:var(--error)}
-
-/* 日志区域 */
-.log-card{background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:20px;padding:32px;margin-bottom:32px}
-.log-card h3{font-size:18px;font-weight:600;margin-bottom:16px;display:flex;align-items:center;gap:8px}
-#log{width:100%;height:320px;background:rgba(0,0,0,0.3);border:1px solid var(--border);border-radius:12px;padding:16px;color:var(--text);font-family:'SF Mono','Monaco','Consolas',monospace;font-size:12px;line-height:1.7;resize:vertical;outline:none;white-space:pre-wrap}
-
-/* 统计卡片 */
-.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:32px}
-.stat-card{background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:16px;padding:24px;text-align:center;transition:all 0.3s}
-.stat-card:hover{border-color:rgba(41,151,255,0.2)}
-.stat-num{font-size:32px;font-weight:700;background:linear-gradient(135deg,var(--blue),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:4px}
-.stat-label{font-size:12px;color:var(--sub)}
-
-/* 配置区域 */
-.config-card{background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:20px;padding:32px;margin-bottom:32px}
-.config-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}
-.config-head h3{font-size:18px;font-weight:600}
-.config-actions{display:flex;gap:8px}
-.small-btn{padding:8px 16px;border:1px solid var(--border);border-radius:980px;background:transparent;color:var(--sub);font-size:12px;font-weight:500;cursor:pointer;transition:all 0.2s}
-.small-btn:hover{border-color:var(--blue);color:var(--blue)}
-#configArea{width:100%;height:240px;background:rgba(0,0,0,0.3);border:1px solid var(--border);border-radius:12px;padding:16px;color:var(--text);font-family:'SF Mono','Monaco','Consolas',monospace;font-size:12px;line-height:1.6;resize:vertical;outline:none}
-#configArea::placeholder{color:var(--dim)}
-
-/* 下载按钮 */
-.download-btn{width:100%;padding:16px;border:none;border-radius:980px;background:linear-gradient(135deg,var(--blue),var(--purple));color:#fff;font-size:17px;font-weight:600;cursor:pointer;transition:all 0.3s;letter-spacing:0.02em;display:none}
-.download-btn.show{display:block}
-.download-btn:hover{box-shadow:0 8px 40px rgba(41,151,255,0.3);transform:translateY(-2px)}
-
-/* 未匹配列表 */
-.unmatched-card{background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:20px;padding:32px;margin-top:32px;display:none}
-.unmatched-card.show{display:block}
-.unmatched-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}
-.unmatched-head h3{font-size:18px;font-weight:600;display:flex;align-items:center;gap:8px}
-#unmatchedList{width:100%;min-height:160px;max-height:320px;background:rgba(0,0,0,0.3);border:1px solid var(--border);border-radius:12px;padding:16px;color:var(--text);font-family:'SF Mono','Monaco','Consolas',monospace;font-size:12px;line-height:1.8;overflow-y:auto;white-space:pre-wrap}
-
-/* 分割线 */
-.divider{height:1px;background:linear-gradient(90deg,transparent,var(--border),transparent);margin:40px 0}
-
-/* 底部 */
-.foot{text-align:center;padding:40px 24px 48px;border-top:1px solid rgba(255,255,255,0.04)}
-.foot p{font-size:12px;color:var(--dim);letter-spacing:0.02em}
-
-/* 响应式 */
-@media(max-width:768px){
-    .hero h1{font-size:32px}
-    .stats{grid-template-columns:repeat(2,1fr)}
-    .upload-zone,.log-card,.config-card,.unmatched-card{padding:24px}
-}
-</style>
+        /* 底部 */
+        .foot{text-align:center;padding:40px 24px 48px;border-top:1px solid rgba(255,255,255,0.04)}
+        .foot p{font-size:12px;color:var(--dim);letter-spacing:0.02em}
+    </style>
 </head>
 <body>
-
-<nav class="nav">
-    <div class="nav-in">
-        <a href="https://www.agi188.work" class="nav-brand">AGI188</a>
-        <ul class="nav-r">
-            <li><a href="https://www.agi188.work#tools">返回工具集</a></li>
-        </ul>
-    </div>
-</nav>
-
-<div class="main">
-    <div class="hero">
-        <div class="hero-icon">📊</div>
-        <h1>商机数据自动处理工具</h1>
-        <p>Excel 上传 → 智能匹配 → 自动清洗 → 下载结果</p>
-    </div>
-
-    <!-- 上传区域 -->
-    <div class="upload-zone" id="uploadZone">
-        <div class="upload-icon">📁</div>
-        <h3>上传 Excel 文件</h3>
-        <p>支持 .xlsx / .xls 格式，最大 50MB</p>
-        <label class="file-btn">
-            <input type="file" id="fileInput" accept=".xlsx,.xls">
-            选择文件
-        </label>
-    </div>
-
-    <!-- 统计面板 -->
-    <div class="stats" id="stats" style="display:none">
-        <div class="stat-card">
-            <div class="stat-num" id="totalRows">0</div>
-            <div class="stat-label">总行数</div>
+    <nav class="nav">
+        <div class="nav-in">
+            <a href="https://www.agi188.work" class="nav-brand">AGI188</a>
+            <ul class="nav-r">
+                <li><a href="https://www.agi188.work#tools">返回工具集</a></li>
+            </ul>
         </div>
-        <div class="stat-card">
-            <div class="stat-num" id="skipRows">0</div>
-            <div class="stat-label">跳过 (已有价格)</div>
+    </nav>
+
+    <h1>📊 商机数据自动处理工具</h1>
+    <p class="subtitle">一键完成9步数据清洗 · 价格匹配 · 格式整理</p>
+
+        <div class="features">
+            <div class="feature-item">✅ 自动清理空行</div>
+            <div class="feature-item">✅ 格式自动转换</div>
+            <div class="feature-item">✅ 列顺序调整</div>
+            <div class="feature-item">✅ 价格智能匹配</div>
+            <div class="feature-item">✅ 本地安全处理</div>
+            <div class="feature-item">✅ 自动命名文件</div>
         </div>
-        <div class="stat-card">
-            <div class="stat-num" id="matchRows">0</div>
-            <div class="stat-label">匹配成功</div>
+
+        <div style="margin: 32px 0; padding: 24px; background: rgba(255,255,255,0.03); border-radius: 20px; border: 1px solid var(--border);">
+            <p style="margin-bottom: 16px; font-size: 15px; color: var(--text); font-weight: 500;">选择处理模式:</p>
+            <label style="margin-right: 32px; cursor: pointer; color: var(--sub); font-size: 14px;">
+                <input type="radio" name="processMode" value="standard" checked style="margin-right: 8px;"> 标准处理(原9步)
+            </label>
+            <label style="cursor: pointer; color: var(--sub); font-size: 14px;">
+                <input type="radio" name="processMode" value="dateFilter" style="margin-right: 8px;"> 带日期过滤处理(新增T-1/T-3/T-7/T-14/T-30过滤)
+            </label>
         </div>
-        <div class="stat-card">
-            <div class="stat-num" id="unmatchRows">0</div>
-            <div class="stat-label">未匹配</div>
-        </div>
-    </div>
 
-    <!-- 日志区域 -->
-    <div class="log-card">
-        <h3>📝 处理日志 <span class="tag" id="statusTag">等待上传</span></h3>
-        <textarea id="log" readonly placeholder="上传文件后，处理日志将显示在这里..."></textarea>
-    </div>
-
-    <!-- 下载按钮 -->
-    <button class="download-btn" id="downloadBtn">📥 下载处理结果</button>
-
-    <div class="divider"></div>
-
-    <!-- 未匹配课程区域 -->
-    <div class="unmatched-card" id="unmatchedCard">
-        <div class="unmatched-head">
-            <h3>⚠️ 未匹配课程列表 <span class="tag err" id="unmatchedCount">0 条</span></h3>
-            <button class="small-btn" onclick="copyUnmatched()">📋 一键复制</button>
-        </div>
-        <div id="unmatchedList"></div>
-        <p style="font-size:12px;color:var(--sub);margin-top:12px">💡 复制后粘贴到「自定义课程价格配置」中，批量添加价格</p>
-    </div>
-
-    <!-- 课程配置区域 -->
-    <div class="config-card">
-        <div class="config-head">
-            <h3>⚙️ 课程价格配置</h3>
-            <div class="config-actions">
-                <button class="small-btn" onclick="loadDefaultConfig()">🔄 加载默认配置</button>
-                <button class="small-btn" onclick="saveConfig()">💾 保存配置</button>
-                <button class="small-btn" onclick="resetConfig()">↺ 重置</button>
+        <div style="margin: 15px 0;">
+            <button id="toggleConfig" style="background: #1e1e30; border: 1px solid #00d4ff; color: #00d4ff; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 14px;">
+                ⚙️ 展开自定义课程价格配置
+            </button>
+            <div id="configPanel" style="display: none; margin-top: 10px; padding: 15px; background: #1e1e30; border-radius: 8px; border: 1px solid #2d2d4a;">
+                <p style="font-size: 13px; color: #aaa; margin-bottom: 10px;">
+                    在这里配置课程名称和价格的对应关系,一行一个,格式:课程名称 价格(空格分隔)<br>
+                    留空则使用默认的16个课程价格配置
+                </p>
+                <textarea id="priceConfig" style="width: 100%; height: 180px; padding: 10px; border: 1px solid #333355; border-radius: 6px; font-size: 13px; resize: vertical; background: #252538; color: #eee;" placeholder="比如:
+2026年全国事业单位联考深度系统班 580
+国考省考事考省心畅学计划 3980
+..."></textarea>
+                <div style="margin-top: 10px;">
+                    <button id="loadDefault" style="background: #252538; border: 1px solid #333355; color: #00d4ff; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;">加载默认配置</button>
+                    <button id="clearConfig" style="margin-left: 10px; background: #252538; border: 1px solid #333355; color: #00d4ff; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;">清空配置</button>
+                </div>
             </div>
         </div>
-        <textarea id="configArea" placeholder="格式：课程名称 价格&#10;每行一条，例如：&#10;2026年事业单位面试深度系统班 580&#10;院长亲批·申论1v1定制特训营 4980"></textarea>
-        <p style="font-size:12px;color:var(--sub);margin-top:12px">💡 配置自动保存在本地浏览器，刷新不会丢失</p>
+
+        <label class="btn btn-upload" for="fileInput">📁 选择要处理的 Excel 文件</label>
+        <input type="file" id="fileInput" accept=".xlsx,.xls">
+
+        <div class="progress-bar" id="progressBar">
+            <div class="progress-fill" id="progressFill"></div>
+        </div>
+
+        <button class="btn btn-download" id="downloadBtn">💾 下载处理完成的文件</button>
+
+        <div class="log" id="log">
+等待上传文件...
+💡 支持格式:.xlsx / .xls
+🔒 所有数据在您的浏览器本地处理,不会上传到任何服务器
+        </div>
+
+        <p class="tip">处理完成后文件会自动命名为:商机分析-3月-YYYYMMDD.xlsx</p>
     </div>
+    <script>
+        let finalWB = null;
+        const log = document.getElementById('log');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const progressBar = document.getElementById('progressBar');
+        const progressFill = document.getElementById('progressFill');
+        // ================================================
+        // 默认课程价格映射表 v20260428.3
+        // ================================================
+        // 课程价格配置从 GitHub 动态拉取
+        // 配置文件：price-config.json
+        // ================================================
+        let defaultPriceMap = {};  // 初始为空，加载后填充
+        let CONFIG_LOAD_STATUS = 'loading';  // loading / success / error
+        const PRICE_CONFIG_VERSION = '20260428.17';  // 保留版本号机制
 
-    <div class="foot">
-        <p>© 2026 AGI188.WORK · 商机数据自动处理工具 v20260428.3</p>
-    </div>
-</div>
-
-<script src="https://unpkg.com/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-<script>
-let defaultPriceMap = {};
-let userConfig = {};
-let resultData = null;
-let unmatchedText = '';
-
-// 从 GitHub 动态加载价格配置
-async function loadPriceConfig() {
-    try {
-        const response = await fetch('https://raw.githubusercontent.com/zhengchen712-cpu/fixed_business_data_tool/main/price-config.json', { cache: 'no-cache' });
-        if (!response.ok) throw new Error('加载失败');
-        
-        const config = await response.json();
-        const flatMap = {};
-        for (const [category, courses] of Object.entries(config.data)) {
-            courses.forEach(item => {
-                flatMap[item.name] = item.price;
-            });
-        }
-        defaultPriceMap = flatMap;
-        console.log(`✅ 默认配置加载成功，共 ${Object.keys(flatMap).length} 条课程`);
-        return flatMap;
-    } catch (err) {
-        console.error('❌ 配置加载失败', err);
-        return {};
-    }
-}
-
-// 解析用户配置
-function parseUserConfig(text) {
-    const map = {};
-    const lines = text.trim().split('\n');
-    lines.forEach(line => {
-        const parts = line.trim().split(/\s+/);
-        if (parts.length >= 2) {
-            const price = parseInt(parts[parts.length - 1]);
-            if (!isNaN(price)) {
-                const name = parts.slice(0, -1).join(' ');
-                if (name) map[name] = price;
+        // 从 GitHub 动态加载价格配置
+        async function loadPriceConfig() {
+            try {
+                // GitHub 原始文件地址
+                const CONFIG_URL = 'https://raw.githubusercontent.com/zhengchen712-cpu/fixed_business_data_tool/main/price-config.json';
+                
+                const response = await fetch(CONFIG_URL, { cache: 'no-cache' });
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                
+                const config = await response.json();
+                
+                // 将分层结构转换成扁平的 {name: price} 映射
+                const flatMap = {};
+                for (const [category, courses] of Object.entries(config.data)) {
+                    courses.forEach(item => {
+                        flatMap[item.name] = item.price;
+                    });
+                }
+                
+                defaultPriceMap = flatMap;
+                CONFIG_LOAD_STATUS = 'success';
+                
+                console.log(`✅ 价格配置加载成功，共 ${Object.keys(flatMap).length} 条课程`);
+                return flatMap;
+                
+            } catch (err) {
+                CONFIG_LOAD_STATUS = 'error';
+                console.error('❌ 价格配置加载失败，使用用户本地配置', err);
+                return {};
             }
         }
-    });
-    return map;
-}
 
-// 规范化名称（去掉特殊字符）
-function normalizeName(name) {
-    if (!name) return '';
-    return String(name)
-        .replace(/[\s\u3000\u00a0]+/g, '')
-        .replace(/[""''()（）\[\]【】{}、，,\.。""''\-—_\/\\@#$%^&*+=`~<>?？;:：;'"'|\\]/g, '')
-        .toLowerCase();
-}
+        // 页面加载时自动拉取配置
+        loadPriceConfig();
+        // 页面加载完成后绑定配置面板事件
+        document.addEventListener('DOMContentLoaded', function() {
+            const textarea = document.getElementById('priceConfig');
 
-// 获取配置文本
-function getConfigText() {
-    const all = { ...defaultPriceMap, ...userConfig };
-    let text = '';
-    for (const [name, price] of Object.entries(all)) {
-        text += `${name} ${price}\n`;
-    }
-    return text;
-}
-
-// 加载默认配置到文本框
-function loadDefaultConfig() {
-    document.getElementById('configArea').value = getConfigText();
-}
-
-// 保存用户配置
-function saveConfig() {
-    const text = document.getElementById('configArea').value;
-    userConfig = parseUserConfig(text);
-    localStorage.setItem('businessDataConfig', text);
-    alert(`✅ 配置已保存，共 ${Object.keys(userConfig).length} 条课程价格`);
-}
-
-// 重置配置
-function resetConfig() {
-    if (confirm('确定要重置为默认配置吗？')) {
-        localStorage.removeItem('businessDataConfig');
-        document.getElementById('configArea').value = getConfigText();
-        userConfig = {};
-    }
-}
-
-// 复制未匹配列表
-function copyUnmatched() {
-    navigator.clipboard.writeText(unmatchedText).then(() => {
-        alert('✅ 未匹配列表已复制到剪贴板');
-    });
-}
-
-// 处理 Excel
-function processExcel(data) {
-    const logEl = document.getElementById('log');
-    const tagEl = document.getElementById('statusTag');
-    tagEl.className = 'tag warn';
-    tagEl.textContent = '处理中...';
-    logEl.textContent = '';
-
-    // 查找价格列和课程列
-    let priceCol = -1, courseCol = -1;
-    for (let i = 0; i < data[0].length; i++) {
-        const header = String(data[0][i] || '');
-        if (header.includes('课程名称') || header.includes('课程名') || header.includes('商品名称')) {
-            courseCol = i;
-        }
-        if (header.includes('课程价格') || header.includes('价格') || header.includes('商品价格')) {
-            priceCol = i;
-        }
-    }
-
-    if (priceCol === -1 || courseCol === -1) {
-        tagEl.className = 'tag err';
-        tagEl.textContent = '处理失败';
-        logEl.textContent = `❌ 错误：找不到课程列或价格列\n\n当前表头：\n${data[0].join(' | ')}\n\n请确保 Excel 包含「课程名称」和「课程价格」列`;
-        return;
-    }
-
-    logEl.textContent += `✅ 检测到列：\n`;
-    logEl.textContent += `   课程名称列 → 第 ${courseCol + 1} 列\n`;
-    logEl.textContent += `   课程价格列 → 第 ${priceCol + 1} 列\n\n`;
-
-    // 合并配置（用户配置优先级更高）
-    const finalMap = { ...defaultPriceMap, ...userConfig };
-    const normalizedMap = {};
-    for (const [name, price] of Object.entries(finalMap)) {
-        normalizedMap[normalizeName(name)] = price;
-    }
-
-    logEl.textContent += `✅ 配置加载完成\n`;
-    logEl.textContent += `   默认配置: ${Object.keys(defaultPriceMap).length} 条\n`;
-    logEl.textContent += `   用户自定义: ${Object.keys(userConfig).length} 条\n`;
-    logEl.textContent += `   总计规则数: ${Object.keys(finalMap).length} 条\n\n`;
-    logEl.textContent += `🔄 开始处理数据...\n\n`;
-
-    // 统计
-    let updateCount = 0, skipCount = 0;
-    const unmatchedCourses = {};
-
-    // 从第2行开始处理（跳过表头）
-    for (let i = 1; i < data.length; i++) {
-        const row = data[i];
-        if (!row) continue;
-        
-        const name = row[courseCol];
-        const currentPrice = row[priceCol];
-
-        // 已有价格（数字 > 0），跳过
-        if (typeof currentPrice === 'number' && currentPrice > 0) {
-            skipCount++;
-            continue;
-        }
-
-        // 需要填充价格
-        if (name) {
-            const normalizedName = normalizeName(name);
-            if (normalizedMap[normalizedName]) {
-                row[priceCol] = normalizedMap[normalizedName];
-                updateCount++;
-            } else {
-                // 关键词模糊匹配兜底
-                let matched = false;
-                for (const [keyName, price] of Object.entries(normalizedMap)) {
-                    if (normalizedName.includes(keyName) || keyName.includes(normalizedName)) {
-                        row[priceCol] = price;
-                        updateCount++;
-                        matched = true;
-                        break;
+            // 展开/折叠配置面板
+            document.getElementById('toggleConfig').addEventListener('click', function() {
+                const panel = document.getElementById('configPanel');
+                if (panel.style.display === 'none') {
+                    panel.style.display = 'block';
+                    this.textContent = '⚙️ 收起自定义课程价格配置';
+                } else {
+                    panel.style.display = 'none';
+                    this.textContent = '⚙️ 展开自定义课程价格配置';
+                }
+            });
+            // 生成默认配置文本
+            function getDefaultConfigText() {
+                let text = '';
+                for (const [name, price] of Object.entries(defaultPriceMap)) {
+                    text += `${name} ${price}\n`;
+                }
+                return text;
+            }
+            // 页面加载时：等待配置拉取完成后，再做版本检测和初始化
+            async function initConfig() {
+                // 先等 GitHub 配置加载完成（最多等3秒）
+                const startTime = Date.now();
+                while (CONFIG_LOAD_STATUS === 'loading' && Date.now() - startTime < 3000) {
+                    await new Promise(r => setTimeout(r, 100));
+                }
+                
+                const savedVersion = localStorage.getItem('priceConfigVersion');
+                const defaultText = getDefaultConfigText();
+                
+                // 版本不一致，强制重置为最新默认配置
+                if (savedVersion !== PRICE_CONFIG_VERSION) {
+                    textarea.value = defaultText;
+                    localStorage.setItem('savedPriceConfig', defaultText);
+                    localStorage.setItem('priceConfigVersion', PRICE_CONFIG_VERSION);
+                    console.log(`🔄 配置已自动更新到版本: ${PRICE_CONFIG_VERSION}`);
+                } else {
+                    // 版本一致，用本地保存的配置
+                    const savedConfig = localStorage.getItem('savedPriceConfig');
+                    if (savedConfig === null || savedConfig === '') {
+                        textarea.value = defaultText;
+                        localStorage.setItem('savedPriceConfig', defaultText);
+                    } else {
+                        textarea.value = savedConfig;
                     }
                 }
-                if (!matched) {
-                    const rawName = String(name).trim().substring(0, 80);
-                    unmatchedCourses[rawName] = (unmatchedCourses[rawName] || 0) + 1;
+            }
+            
+            // 启动初始化
+            initConfig();
+            // 输入时自动保存到本地
+            textarea.addEventListener('input', function() {
+                localStorage.setItem('savedPriceConfig', this.value);
+            });
+            // 加载默认配置
+            document.getElementById('loadDefault').addEventListener('click', function() {
+                const text = getDefaultConfigText();
+                textarea.value = text;
+                // 保存到本地并更新版本号
+                localStorage.setItem('savedPriceConfig', text);
+                localStorage.setItem('priceConfigVersion', PRICE_CONFIG_VERSION);
+                alert(`✅ 已重置为最新默认配置！\n版本: ${PRICE_CONFIG_VERSION}\n课程数: ${Object.keys(defaultPriceMap).length} 条`);
+            });
+            // 清空配置
+            document.getElementById('clearConfig').addEventListener('click', function() {
+                textarea.value = '';
+                // 保存到本地
+                localStorage.setItem('savedPriceConfig', '');
+            });
+        });
+        // 解析用户配置的价格映射
+        function parseUserConfig() {
+            const configText = document.getElementById('priceConfig').value.trim();
+            if (!configText) {
+                // 没有配置,返回默认的
+                return {
+                    map: defaultPriceMap,
+                    count: Object.keys(defaultPriceMap).length,
+                    isUser: false
+                };
+            }
+            const userMap = {};
+            const lines = configText.split('\n');
+            let validCount = 0;
+            for (const line of lines) {
+                const trimmed = line.trim();
+                if (!trimmed) continue; // 跳过空行
+                // 找到最后一个空格,前面是课程名,后面是价格(支持课程名带空格)
+                const lastSpaceIndex = trimmed.lastIndexOf(' ');
+                if (lastSpaceIndex === -1) continue; // 没有空格,无效行
+                const courseName = trimmed.substring(0, lastSpaceIndex).trim();
+                const priceStr = trimmed.substring(lastSpaceIndex + 1).trim();
+                const price = Number(priceStr);
+                if (courseName && !isNaN(price)) {
+                    userMap[courseName] = price;
+                    validCount++;
                 }
             }
+            return {
+                map: userMap,
+                count: validCount,
+                isUser: true
+            };
         }
-    }
-
-    // 显示统计
-    const totalRows = data.length - 1;
-    const processedRows = totalRows - skipCount;
-    const unmatchedCount = Object.keys(unmatchedCourses).length;
-
-    logEl.textContent += `✅ 处理完成！\n\n`;
-    logEl.textContent += `📊 数据概览: 共 ${totalRows} 行\n`;
-    logEl.textContent += `⏭️  已有价格跳过: ${skipCount} 行\n`;
-    logEl.textContent += `🎯 待处理 (price=null): ${processedRows} 行\n`;
-    logEl.textContent += `✅ 匹配成功: ${updateCount} 行\n`;
-    const matchRate = processedRows > 0 ? ((updateCount / processedRows) * 100).toFixed(1) : 100;
-    logEl.textContent += `📈 匹配率: ${matchRate}%\n\n`;
-
-    // 更新统计面板
-    document.getElementById('totalRows').textContent = totalRows;
-    document.getElementById('skipRows').textContent = skipCount;
-    document.getElementById('matchRows').textContent = updateCount;
-    document.getElementById('unmatchRows').textContent = unmatchedCount;
-    document.getElementById('stats').style.display = 'grid';
-
-    // 显示未匹配
-    if (unmatchedCount > 0) {
-        logEl.textContent += `⚠️ 未匹配课程: ${unmatchedCount} 条\n\n`;
-        const sorted = Object.entries(unmatchedCourses).sort((a, b) => b[1] - a[1]);
-        sorted.forEach(([name, count]) => {
-            logEl.textContent += `   ${count}次 → ${name}\n`;
-        });
-
-        // 显示未匹配卡片
-        unmatchedText = sorted.map(([name, count]) => `${name} 0`).join('\n');
-        document.getElementById('unmatchedList').textContent = unmatchedText;
-        document.getElementById('unmatchedCount').textContent = `${unmatchedCount} 条`;
-        document.getElementById('unmatchedCard').classList.add('show');
-    } else {
-        logEl.textContent += `🎉 完美！所有课程全部匹配成功！`;
-    }
-
-    tagEl.className = 'tag on';
-    tagEl.textContent = '处理完成';
-    resultData = data;
-    document.getElementById('downloadBtn').classList.add('show');
-}
-
-// 文件上传处理
-document.getElementById('fileInput').addEventListener('change', function(e) {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        try {
-            const workbook = XLSX.read(e.target.result, { type: 'array' });
-            const sheetName = workbook.SheetNames[0];
-            const worksheet = workbook.Sheets[sheetName];
-            const data = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: null });
-            processExcel(data);
-        } catch (err) {
-            document.getElementById('log').textContent = `❌ 文件解析失败：\n${err.message}`;
-            document.getElementById('statusTag').className = 'tag err';
-            document.getElementById('statusTag').textContent = '解析失败';
+        function updateProgress(percent) {
+            progressFill.style.width = percent + '%';
         }
-    };
-    reader.readAsArrayBuffer(file);
-});
+        // 上传文件
+        document.getElementById('fileInput').addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
 
-// 拖拽上传
-const uploadZone = document.getElementById('uploadZone');
-uploadZone.addEventListener('dragover', function(e) {
-    e.preventDefault();
-    this.classList.add('dragover');
-});
-uploadZone.addEventListener('dragleave', function(e) {
-    e.preventDefault();
-    this.classList.remove('dragover');
-});
-uploadZone.addEventListener('drop', function(e) {
-    e.preventDefault();
-    this.classList.remove('dragover');
-    const file = e.dataTransfer.files[0];
-    if (file && (file.name.endsWith('.xlsx') || file.name.endsWith('.xls'))) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            try {
-                const workbook = XLSX.read(e.target.result, { type: 'array' });
-                const sheetName = workbook.SheetNames[0];
-                const worksheet = workbook.Sheets[sheetName];
-                const data = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: null });
-                processExcel(data);
-            } catch (err) {
-                document.getElementById('log').textContent = `❌ 文件解析失败：\n${err.message}`;
+            // 先检查XLSX是否加载成功
+            if (typeof XLSX === 'undefined') {
+                log.textContent = "❌ 工具加载失败,请刷新页面重试!\n\n如果还是不行,可能是网络问题,建议:\n1. 刷新页面重新加载\n2. 切换网络(比如手机热点)\n3. 复制链接用Chrome浏览器打开";
+                return;
             }
-        };
-        reader.readAsArrayBuffer(file);
-    }
-});
 
-// 下载功能
-document.getElementById('downloadBtn').addEventListener('click', function() {
-    if (!resultData) return;
-    const worksheet = XLSX.utils.aoa_to_sheet(resultData);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, '处理结果');
-    XLSX.writeFile(workbook, '商机数据处理结果_' + new Date().toISOString().slice(0, 10) + '.xlsx');
-});
+            log.textContent = "正在读取文件...";
+            progressBar.style.display = 'block';
+            updateProgress(10);
 
-// 初始化
-async function init() {
-    await loadPriceConfig();
-    // 加载本地保存的配置
-    const saved = localStorage.getItem('businessDataConfig');
-    if (saved) {
-        document.getElementById('configArea').value = saved;
-        userConfig = parseUserConfig(saved);
-    } else {
-        loadDefaultConfig();
-    }
-}
-init();
-</script>
+            const reader = new FileReader();
+
+            reader.onload = async (ev) => {
+                try {
+                    const data = new Uint8Array(ev.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    await processData(workbook);
+                } catch (err) {
+                    if (err.message.includes('XLSX')) {
+                        log.textContent = "❌ 工具加载失败,请刷新页面重试!";
+                    } else {
+                        log.textContent = "❌ 处理失败:" + err.message + "\n\n请检查文件格式是否正确,确保是标准的商机分析Excel文件。";
+                    }
+                    progressBar.style.display = 'none';
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        });
+        // 核心处理逻辑
+        async function processData(workbook) {
+            // 获取用户选择的处理模式
+            const mode = document.querySelector('input[name="processMode"]:checked').value;
+            const isDateFilter = mode === 'dateFilter';
+
+            const ws = workbook.Sheets[workbook.SheetNames[0]];
+            // defval: null = 空单元格保持为 null，不要自动转成0
+            let json = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null });
+            const header = json[0];
+            let data = json.slice(1);
+            if (isDateFilter) {
+                log.textContent = "✅ 开始执行 带日期过滤的 11 步自动处理...\n";
+            } else {
+                log.textContent = "✅ 开始执行 标准 9 步自动处理...\n";
+            }
+            updateProgress(20);
+            // 列索引(自动识别列)
+            const phoneCol = header.findIndex(h => h?.includes('用户手机号'));
+            const courseNameCol = header.findIndex(h => h?.includes('课程名称') && !h?.includes('.1'));
+            const priceCol = header.findIndex(h => h?.includes('课程价格'));
+            const examTypeCol = header.findIndex(h => h?.includes('考试类型'));
+            if (phoneCol === -1) {
+                throw new Error("未找到'事件属性用户手机号'列,请检查文件格式");
+            }
+            // 1. 删除手机号为空的行
+            const originalCount = data.length;
+            data = data.filter(row => {
+                const val = row[phoneCol];
+                return val !== undefined && val !== null && String(val).trim() !== '';
+            });
+            const removedCount = originalCount - data.length;
+            log.textContent += `1. 已清理空白手机号行,删除了 ${removedCount} 条空数据\n`;
+            updateProgress(25);
+            // 2. 手机号转数字
+            data.forEach(row => {
+                if (row[phoneCol] !== undefined) {
+                    row[phoneCol] = Number(row[phoneCol]) || 0;
+                }
+            });
+            log.textContent += "2. 手机号已转为数字格式\n";
+            updateProgress(30);
+            // 3. 插入新列(手机号右侧)
+            const newCourseCol = phoneCol + 1;
+            data.forEach(row => row.splice(newCourseCol, 0, ''));
+            header.splice(newCourseCol, 0, '事件属性课程名称_新');
+            log.textContent += "3. 已在手机号右侧插入课程名称新列\n";
+            updateProgress(35);
+            // 4. 复制课程名称到新列
+            const oldCourseCol = courseNameCol < newCourseCol ? courseNameCol : courseNameCol + 1;
+            data.forEach(row => {
+                if (row[oldCourseCol] !== undefined) {
+                    row[newCourseCol] = row[oldCourseCol];
+                }
+            });
+            log.textContent += "4. 已将课程名称复制到新列\n";
+            updateProgress(40);
+            // 5. 删除 A B 列:事件指标、原课程名称
+            const idx1 = header.findIndex(h => h === '事件指标');
+            const idx2 = oldCourseCol;
+            const removeList = [idx1, idx2].filter(i => i >= 0).sort((a,b)=>b-a);
+            removeList.forEach(i => {
+                header.splice(i,1);
+                data.forEach(row => row.splice(i,1));
+            });
+            log.textContent += "5. 已删除原有的事件指标和课程名称列\n";
+            updateProgress(45);
+            // 重新计算列位置
+            const newPriceCol = header.findIndex(h => h?.includes('课程价格'));
+            const newExamCol = header.findIndex(h => h?.includes('考试类型'));
+            // 6. 价格列移动到考试类型左侧
+            if (newPriceCol !== -1 && newExamCol !== -1) {
+                header.splice(newExamCol, 0, header.splice(newPriceCol, 1)[0]);
+                data.forEach(row => row.splice(newExamCol, 0, row.splice(newPriceCol, 1)[0]));
+                log.textContent += "6. 已调整列顺序,价格列移到考试类型左侧\n";
+            }
+            updateProgress(50);
+            // 7. 价格转数字
+            const finalPriceCol = header.findIndex(h => h?.includes('课程价格'));
+            const finalCourseCol = header.findIndex(h => h === '事件属性课程名称_新');
+            data.forEach(row => {
+                if (row[finalPriceCol] !== undefined) {
+                    row[finalPriceCol] = Number(row[finalPriceCol]) || 0;
+                }
+            });
+            log.textContent += "7. 课程价格已转为数字格式\n";
+            updateProgress(55);
+            // 日期过滤处理(仅dateFilter模式)
+            if (isDateFilter) {
+                // 8. 计算T-1, T-3, T-7, T-14, T-30的日期(修复时区问题,使用本地时间)
+                function getDateStr(daysAgo) {
+                    const date = new Date();
+                    date.setDate(date.getDate() - daysAgo);
+                    // 用本地时间生成日期,避免UTC时区偏移
+                    const year = date.getFullYear();
+                    const month = String(date.getMonth() + 1).padStart(2, '0');
+                    const day = String(date.getDate()).padStart(2, '0');
+                    return `${year}-${month}-${day}`;
+                }
+                const targetDates = [
+                    getDateStr(1),  // T-1
+                    getDateStr(3),  // T-3
+                    getDateStr(7),  // T-7
+                    getDateStr(14), // T-14
+                    getDateStr(30)  // T-30
+                ];
+                log.textContent += `8. 计算目标日期:${targetDates.join(', ')}\n`;
+
+                // 第一步:先删除无关日期列,避免后续索引错位
+                const dateRegex = /^\d{4}[-\/]\d{2}[-\/]\d{2}$/; // 兼容横杠/斜杠两种日期格式
+                const colsToRemove = [];
+                for (let i = 0; i < header.length; i++) {
+                    const colName = header[i];
+                    if (colName && dateRegex.test(colName.trim())) {
+                        // 统一格式:把斜杠换成横杠、去掉前后空格,再匹配目标日期
+                        const normalizedCol = colName.trim().replace(/\//g, '-');
+                        if (!targetDates.includes(normalizedCol)) {
+                            colsToRemove.push(i);
+                        }
+                    }
+                }
+                // 从后往前删除列,避免前面的删除影响后面的索引
+                colsToRemove.sort((a,b)=>b-a).forEach(i => {
+                    header.splice(i, 1);
+                    data.forEach(row => row.splice(i, 1));
+                });
+                log.textContent += `   已删除 ${colsToRemove.length} 个无关日期列\n`;
+
+                // ✅ 删完列之后,重新获取目标日期列的【正确新索引】
+                const dateColIndices = targetDates.map(d => {
+                    return header.findIndex(h => {
+                        if(!h) return false;
+                        // 同样做格式兼容,确保能匹配到不同格式的列名
+                        const normalized = h.trim().replace(/\//g, '-');
+                        return normalized === d;
+                    });
+                }).filter(i => i !== -1);
+                log.textContent += `9. 找到匹配的日期列:${dateColIndices.length} 个\n`;
+
+                // 过滤行:只保留目标日期列中至少有一个不为0的行(完全符合你的需求)
+                const beforeFilterCount = data.length;
+                data = data.filter(row => {
+                    // 检查这5个目标日期列,只要任意一列有非0数据,就保留这一行
+                    return dateColIndices.some(colIdx => {
+                        const val = row[colIdx];
+                        return val !== undefined && val !== 0 && val !== '';
+                    });
+                });
+                const filteredRowCount = beforeFilterCount - data.length;
+                log.textContent += `   已过滤 ${filteredRowCount} 条全0数据行\n`;
+                updateProgress(75);
+            }
+            // 解析价格配置
+            const priceConfig = parseUserConfig();
+            const currentPriceMap = priceConfig.map;
+            
+            // ========== 🔧 智能匹配引擎 v2.2 ==========
+            // 规范化函数：去除所有干扰字符，提高匹配率到99%+
+            function normalizeName(name) {
+                if (!name) return '';
+                return String(name)
+                    .trim()                             // 去除首尾空格
+                    .replace(/\s+/g, '')               // 去除所有空格（包括中间的、不规范的）
+                    .replace(/[""''"]/g, '')           // 去除所有引号（中文双引号/单引号、英文）
+                    .replace(/[()（）【】{}《》<>]/g, '') // 去除所有括号、书名号、尖括号
+                    .replace(/[-_—–―]/g, '')            // 去除各种横线、破折号
+                    .replace(/[、，,/.。·&:：;；!?？]/g, '') // 去除所有标点符号
+                    .replace(/\n/g, '')                // 去除换行符
+                    .toLowerCase();                      // 统一小写
+            }
+            
+            // 构建规范化后的匹配表（key=规范化名称，value=原价）
+            const normalizedMap = {};
+            for (const [name, price] of Object.entries(currentPriceMap)) {
+                const key = normalizeName(name);
+                if (!normalizedMap[key]) {
+                    normalizedMap[key] = price;
+                }
+            }
+            
+            if (priceConfig.isUser) {
+                log.textContent += `   使用自定义价格配置,共 ${priceConfig.count} 条规则\n`;
+            } else {
+                log.textContent += `   使用默认价格配置,共 ${priceConfig.count} 条规则\n`;
+            }
+            log.textContent += `   🚀 智能模糊匹配引擎已启动\n`;
+            
+            // ========== 🧪 调试信息：打印前10行价格列的真实值和类型 ==========
+            log.textContent += `\n---\n🧪 调试：前10行价格列的真实值和类型\n`;
+            for (let i = 0; i < Math.min(10, data.length); i++) {
+                const price = data[i][finalPriceCol];
+                log.textContent += `  行${i + 1}: value=${JSON.stringify(price)}, type=${typeof price}\n`;
+            }
+            
+            // 批量更新价格 + 统计未匹配课程
+            let updateCount = 0;
+            let skipCount = 0;  // 已有价格跳过的数量
+            let fuzzyMatchCount = 0;  // 关键词模糊匹配命中数
+            const unmatchedCourses = {};  // 统计未匹配的课程及出现次数
+            
+            data.forEach(row => {
+                const name = row[finalCourseCol];
+                const currentPrice = row[finalPriceCol];
+                
+                // ========== 核心优化：只处理价格 = 0 的行 ==========
+                // 经调试确认：Excel空单元格被SheetJS解析为0
+                // 所以：price === 0 就是需要填充的空数据
+                // price > 0 就是已有价格，跳过
+                if (currentPrice !== 0) {
+                    skipCount++;
+                    return;  // 不是0，跳过
+                }
+                
+                // 只有价格为空的行才进行匹配
+                if (name) {
+                    // 第一级：精确规范化匹配
+                    const normalizedName = normalizeName(name);
+                    if (normalizedMap[normalizedName]) {
+                        row[finalPriceCol] = normalizedMap[normalizedName];
+                        updateCount++;
+                    } else {
+                        // 第二级：关键词包含匹配（终极兜底）
+                        let matched = false;
+                        for (const [keyName, price] of Object.entries(normalizedMap)) {
+                            if (normalizedName.includes(keyName) || keyName.includes(normalizedName)) {
+                                row[finalPriceCol] = price;
+                                updateCount++;
+                                fuzzyMatchCount++;
+                                matched = true;
+                                break;
+                            }
+                        }
+                        // 两级都没匹配上，才统计到未匹配
+                        if (!matched) {
+                            const rawName = String(name).trim().substring(0, 80);
+                            unmatchedCourses[rawName] = (unmatchedCourses[rawName] || 0) + 1;
+                        }
+                    }
+                }
+            });
+            if (isDateFilter) {
+                log.textContent += `10. 已更新 ${updateCount} 条课程价格\n`;
+            } else {
+                log.textContent += `8. 已更新 ${updateCount} 条课程价格\n`;
+            }
+            
+            // ========== 📊 处理统计 ==========
+            const totalRows = data.length;
+            const processedRows = totalRows - skipCount;  // 实际处理的行数（价格为空的）
+            const matchRate = processedRows > 0 ? ((updateCount / processedRows) * 100).toFixed(1) : 100;
+            
+            log.textContent += `   📊 数据概览: 共 ${totalRows} 行\n`;
+            log.textContent += `   ⏭️  跳过 (price!==0): ${skipCount} 行 (已有价格)\n`;
+            log.textContent += `   🎯 待处理 (price=0): ${processedRows} 行\n`;
+            log.textContent += `   ✅ 匹配成功: ${updateCount} 行\n`;
+            log.textContent += `   📈 匹配率: ${matchRate}%\n`;
+            if (fuzzyMatchCount > 0) {
+                log.textContent += `      (其中模糊匹配命中: ${fuzzyMatchCount} 条)\n`;
+            }
+            
+            // 输出未匹配最多的TOP课程（方便补充价格表）
+            const unmatchedList = Object.entries(unmatchedCourses)
+                .sort((a, b) => b[1] - a[1]);  // 显示全部，不再只显示前15个
+            
+            if (unmatchedList.length > 0) {
+                log.textContent += `\n---\n⚠️ 所有未匹配课程（共 ${unmatchedList.length} 个，按出现次数排序）：\n`;
+                unmatchedList.forEach(([name, count], idx) => {
+                    log.textContent += `${(idx + 1).toString().padStart(3)}. ${count}次 → ${name}\n`;
+                });
+                
+                // 生成所有未匹配课程的纯文本列表（一键复制用）
+                const allUnmatchedNames = unmatchedList.map(([name]) => name).join('\n');
+                
+                log.textContent += `\n---\n📋 【一键复制】所有未匹配课程名称（共 ${unmatchedList.length} 个）：\n`;
+                log.textContent += allUnmatchedNames;
+                log.textContent += `\n\n💡 把上面的课程名称全部复制发给开发者，一次性批量添加搞定！`;
+            }
+            
+            updateProgress(90);
+            // 🔍 自我复查:检查数据是否正确
+            log.textContent += "\n---\n🔍 系统自我复查中...\n";
+            let checkPass = true;
+            // 1. 检查列索引
+            const check_phoneCol = header.findIndex(h => h?.includes('用户手机号'));
+            const check_courseCol = header.findIndex(h => h === '事件属性课程名称_新');
+            const check_priceCol = header.findIndex(h => h?.includes('课程价格'));
+            const check_examCol = header.findIndex(h => h?.includes('考试类型'));
+            // 2. 检查列顺序
+            if (check_priceCol < check_examCol) {
+                log.textContent += `✅ 列顺序检查:价格列在考试类型左侧,正确\n`;
+            } else {
+                log.textContent += `❌ 列顺序检查:价格列位置异常\n`;
+                checkPass = false;
+            }
+            if (check_courseCol > check_phoneCol) {
+                log.textContent += `✅ 列顺序检查:课程名称列在手机号右侧,正确\n`;
+            } else {
+                log.textContent += `❌ 列顺序检查:课程名称列位置异常\n`;
+                checkPass = false;
+            }
+            // 3. 检查手机号列
+            let phoneError = 0;
+            data.forEach(row => {
+                const val = row[check_phoneCol];
+                if (val === undefined || val === null || isNaN(Number(val)) || val === 0) {
+                    phoneError++;
+                }
+            });
+            if (phoneError === 0) {
+                log.textContent += `✅ 手机号列检查:${data.length}条,全部为数字格式,无空值\n`;
+            } else {
+                log.textContent += `❌ 手机号列检查:发现 ${phoneError} 条异常数据\n`;
+                checkPass = false;
+            }
+            // 4. 检查价格列
+            let priceError = 0;
+            data.forEach(row => {
+                const val = row[check_priceCol];
+                if (val !== undefined && val !== null && isNaN(Number(val))) {
+                    priceError++;
+                }
+            });
+            if (priceError === 0) {
+                log.textContent += `✅ 价格列检查:全部为数字格式,无异常\n`;
+            } else {
+                log.textContent += `❌ 价格列检查:发现 ${priceError} 条非数字数据\n`;
+                checkPass = false;
+            }
+            // 5. 检查课程名称列
+            let courseError = 0;
+            data.forEach(row => {
+                const val = row[check_courseCol];
+                if (val === undefined || val === null || String(val).trim() === '') {
+                    courseError++;
+                }
+            });
+            if (courseError === 0) {
+                log.textContent += `✅ 课程名称列检查:无空值,全部正常\n`;
+            } else {
+                log.textContent += `❌ 课程名称列检查:发现 ${courseError} 条空数据\n`;
+                checkPass = false;
+            }
+            // 6. 日期列检查(日期过滤模式)
+            if (isDateFilter) {
+                const dateRegex = /^\d{4}[-\/]\d{2}[-\/]\d{2}$/;
+                const dateCols = header.filter(h => h && dateRegex.test(h.trim()));
+                if (dateCols.length === 5) {
+                    log.textContent += `✅ 日期列检查:保留了5个目标日期列,无多余列\n`;
+                } else {
+                    log.textContent += `⚠️ 日期列检查:找到${dateCols.length}个日期列,预期5个(可能部分日期无数据)\n`;
+                }
+            }
+            // 复查总结
+            log.textContent += "---\n";
+            if (checkPass) {
+                log.textContent += "🎉 复查通过!所有数据统计正常,可以放心下载!\n";
+            } else {
+                log.textContent += "⚠️ 复查发现部分异常,建议检查原始文件后重试!\n";
+            }
+            updateProgress(95);
+            // 生成新表格
+            const newSheet = XLSX.utils.aoa_to_sheet([header, ...data]);
+            finalWB = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(finalWB, newSheet, "处理后数据");
+            log.textContent += `\n🎉 全部处理完成!
+处理结果:
+- 原始数据:${originalCount} 行
+- 清理后:${data.length} 行
+- 更新价格:${updateCount} 条
+- 处理列:${header.length} 列
+点击下方按钮即可下载处理好的文件!`;
+            downloadBtn.style.display = "block";
+            updateProgress(100);
+
+            setTimeout(() => {
+                progressBar.style.display = 'none';
+            }, 1000);
+        }
+        // 下载
+        downloadBtn.addEventListener('click', () => {
+            if (!finalWB) return;
+            const today = new Date().toISOString().slice(0,10).replace(/-/g,'');
+            XLSX.writeFile(finalWB, `商机分析-3月-${today}.xlsx`);
+        });
+    </script>
+
+    <div class="foot">
+        <p>© 2026 AGI188.WORK · 商机数据自动处理工具</p>
+    </div>
 </body>
 </html>
