@@ -619,13 +619,20 @@
                 const name = row[finalCourseCol];
                 const currentPrice = row[finalPriceCol];
                 
-                // ========== 核心优化：只处理价格 = 0 的行 ==========
-                // 经调试确认：Excel空单元格被SheetJS解析为0
-                // 所以：price === 0 就是需要填充的空数据
-                // price > 0 就是已有价格，跳过
-                if (currentPrice !== 0) {
+                // ========== 稳健判断：空/0/null/undefined 都需要处理 ==========
+                // SheetJS 解析 Excel 空单元格可能是：0、null、undefined、''
+                // 只有当前价格 > 0 的时候才说明真的有价格，跳过
+                const priceIsEmpty = (
+                    currentPrice === 0 ||
+                    currentPrice === null ||
+                    currentPrice === undefined ||
+                    currentPrice === '' ||
+                    String(currentPrice).trim() === '0'
+                );
+                
+                if (!priceIsEmpty) {
                     skipCount++;
-                    return;  // 不是0，跳过
+                    return;  // 真的有价格，跳过
                 }
                 
                 // 只有价格为空的行才进行匹配
