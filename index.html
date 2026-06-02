@@ -6,66 +6,206 @@
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>">
     <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>">
     <title>商机数据自动处理工具 - AGI188</title>
+    <!-- 🔴 预定义按钮函数，保证打开就能用，不依赖任何加载 -->
+    <script>
+        window.pageLoaded = false;
+        
+        window.toggleConfig = function() {
+            const panel = document.getElementById('configPanel');
+            const btn = document.getElementById('toggleConfig');
+            if (!panel || !btn) return;
+            
+            if (panel.style.display === 'none') {
+                panel.style.display = 'block';
+                btn.textContent = '⚙️ 收起自定义课程价格配置';
+            } else {
+                panel.style.display = 'none';
+                btn.textContent = '⚙️ 展开自定义课程价格配置';
+            }
+        };
+        
+        window.selectFile = function() {
+            document.getElementById('fileInput').click();
+        };
+        
+        window.loadDefaultConfig = function() {
+            const textarea = document.getElementById('priceConfig');
+            if (textarea && window.defaultPriceMap) {
+                let text = '';
+                for (const [name, price] of Object.entries(window.defaultPriceMap)) {
+                    text += `${name} ${price}\n`;
+                }
+                textarea.value = text;
+            }
+        };
+        
+        window.clearConfig = function() {
+            const textarea = document.getElementById('priceConfig');
+            if (textarea) textarea.value = '';
+        };
+    </script>
     <script src="https://unpkg.com/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
-        * {box-sizing:border-box;margin:0;padding:0}
-        :root{--bg:#000;--text:#f5f5f7;--sub:#86868b;--dim:#48484a;--blue:#2997ff;--purple:#bf5af2;--border:#333;--success:#30d158;--warning:#ffd60a;--error:#ff453a}
-        html{scroll-behavior:smooth}
+        :root {
+            --bg: #0a0a0a;
+            --surface: #141414;
+            --surface-hover: #1a1a1a;
+            --border: #262626;
+            --text: #fafafa;
+            --text-secondary: #a3a3a3;
+            --text-tertiary: #525252;
+            --accent: #e8634a;
+            --accent-soft: rgba(232, 99, 74, 0.15);
+            --success: #10b981;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; font-size: 16px; }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', 'Microsoft YaHei', sans-serif;
-            max-width: 960px;
-            margin: 0 auto;
-            padding: 100px 24px 80px;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
             background: var(--bg);
             color: var(--text);
             min-height: 100vh;
             -webkit-font-smoothing: antialiased;
+            position: relative;
         }
-
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background: 
+                radial-gradient(ellipse 80% 50% at 20% -10%, rgba(232, 99, 74, 0.08), transparent 60%),
+                radial-gradient(ellipse 60% 40% at 80% 110%, rgba(232, 99, 74, 0.04), transparent 60%);
+            pointer-events: none;
+            z-index: 0;
+        }
+        /* 噪点纹理 */
+        body::after {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.015'/%3E%3C/svg%3E");
+            pointer-events: none;
+            z-index: 1;
+        }
         /* 导航 */
-        .nav{position:fixed;top:0;left:0;right:0;z-index:99;background:rgba(0,0,0,0.72);backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px);border-bottom:1px solid rgba(255,255,255,0.04)}
-        .nav-in{max-width:960px;margin:0 auto;padding:0 24px;height:48px;display:flex;justify-content:space-between;align-items:center}
-        .nav-brand{font-size:16px;font-weight:700;letter-spacing:0.02em;text-decoration:none;background:linear-gradient(135deg,var(--blue),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-        .nav-r{display:flex;align-items:center;gap:20px;list-style:none}
-        .nav-r a{font-size:12px;color:var(--sub);text-decoration:none;transition:color 0.2s}
-        .nav-r a:hover{color:var(--text)}
-
+        .nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 999;
+            background: rgba(10, 10, 10, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border);
+        }
+        .nav-in {
+            max-width: 980px;
+            margin: 0 auto;
+            padding: 0 24px;
+            height: 52px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: relative;
+            z-index: 2;
+        }
+        .nav-brand {
+            font-family: 'Fraunces', serif;
+            font-size: 15px;
+            font-weight: 600;
+            letter-spacing: 0.01em;
+            color: var(--text);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .nav-r {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            list-style: none;
+        }
+        .nav-r a {
+            font-size: 12px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+        .nav-r a:hover { color: var(--text); }
+        /* 主容器 */
+        .main {
+            position: relative;
+            z-index: 2;
+            max-width: 720px;
+            margin: 0 auto;
+            padding: 140px 24px 80px;
+        }
         h1 {
-            font-size: 40px;
+            font-family: 'Fraunces', serif;
+            font-size: 44px;
             font-weight: 700;
             letter-spacing: -0.03em;
-            margin-bottom: 8px;
+            margin-bottom: 12px;
             text-align: center;
-            background: linear-gradient(180deg,#f5f5f7,#a1a1a6);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+            color: var(--text);
         }
         .subtitle {
-            color: var(--sub);
+            color: var(--text-secondary);
             text-align: center;
-            margin-bottom: 48px;
-            font-size: 17px;
+            margin-bottom: 56px;
+            font-size: 16px;
+            font-weight: 400;
         }
+        /* 功能卡片网格 */
+        .features {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin: 32px 0 40px;
+        }
+        .feature-item {
+            background: var(--surface);
+            padding: 18px 16px;
+            border-radius: 14px;
+            text-align: center;
+            font-size: 13px;
+            color: var(--text-secondary);
+            border: 1px solid var(--border);
+            transition: all 0.2s;
+            font-weight: 500;
+        }
+        .feature-item:hover {
+            border-color: var(--accent);
+            color: var(--text);
+            transform: translateY(-2px);
+        }
+        /* 按钮 */
         .btn {
             display: block;
             width: 100%;
-            padding: 16px;
+            padding: 18px;
             border: none;
-            border-radius: 980px;
-            font-size: 16px;
+            border-radius: 14px;
+            font-size: 15px;
             cursor: pointer;
             margin: 15px 0;
-            transition: all 0.3s ease;
+            transition: all 0.2s;
             font-weight: 600;
-            letter-spacing: 0.02em;
+            letter-spacing: 0.01em;
+            font-family: inherit;
+            position: relative;
+            z-index: 2;
         }
         .btn-upload {
-            background: linear-gradient(135deg,var(--blue),var(--purple));
+            background: var(--accent);
             color: #fff;
+            box-shadow: 0 4px 20px rgba(232, 99, 74, 0.3);
         }
         .btn-upload:hover {
-            box-shadow: 0 8px 30px rgba(41,151,255,0.25);
-            transform: translateY(-1px);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(232, 99, 74, 0.4);
         }
         .btn-download {
             background: var(--success);
@@ -73,96 +213,195 @@
             display: none;
         }
         .btn-download:hover {
-            box-shadow: 0 8px 30px rgba(48,209,88,0.25);
-            transform: translateY(-1px);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(16, 185, 129, 0.3);
         }
+        /* 日志区域 */
         .log {
-            background: rgba(255,255,255,0.03);
+            background: var(--surface);
             border: 1px solid var(--border);
             padding: 24px;
-            border-radius: 20px;
+            border-radius: 16px;
             margin-top: 20px;
-            min-height: 120px;
+            min-height: 140px;
             white-space: pre-wrap;
             font-size: 13px;
-            color: var(--text);
+            color: var(--text-secondary);
             line-height: 1.8;
-            font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
-            border: 1px solid #2d2d4a;
-            font-family: 'Consolas', monospace;
+            font-family: 'JetBrains Mono', 'SF Mono', monospace;
+            position: relative;
+            z-index: 2;
         }
         #fileInput {
             display: none;
         }
-        .features {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 16px;
-            margin: 32px 0;
-        }
-        .feature-item {
-            background: rgba(255,255,255,0.03);
-            padding: 16px 12px;
-            border-radius: 12px;
-            text-align: center;
-            font-size: 13px;
-            color: var(--text);
-            border: 1px solid var(--border);
-            transition: all 0.3s;
-        }
-        .feature-item:hover {
-            border-color: rgba(41,151,255,0.2);
-        }
+        /* 进度条 */
         .progress-bar {
             width: 100%;
-            height: 6px;
+            height: 4px;
             background: var(--border);
             border-radius: 100px;
-            margin: 10px 0;
+            margin: 12px 0;
             overflow: hidden;
             display: none;
+            position: relative;
+            z-index: 2;
         }
         .progress-fill {
             height: 100%;
-            background: linear-gradient(90deg, var(--blue), var(--purple));
+            background: var(--accent);
             width: 0%;
             transition: width 0.3s ease;
         }
+        /* 提示文字 */
         .tip {
             text-align: center;
-            color: var(--dim);
+            color: var(--text-tertiary);
             font-size: 12px;
-            margin-top: 20px;
+            margin-top: 24px;
+            position: relative;
+            z-index: 2;
         }
-        /* 深色模式下的表单样式 */
+        /* 单选按钮 */
         input[type="radio"] {
-            accent-color: var(--blue);
+            accent-color: var(--accent);
         }
+        /* 配置面板 */
         textarea {
-            background: rgba(0,0,0,0.3) !important;
+            background: var(--bg) !important;
             border: 1px solid var(--border) !important;
             color: var(--text) !important;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            line-height: 1.6;
         }
         textarea::placeholder {
-            color: var(--dim) !important;
+            color: var(--text-tertiary) !important;
         }
-
+        /* 模式选择区域 */
+        .mode-select {
+            margin: 15px 0;
+            padding: 20px 22px;
+            background: var(--surface);
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            position: relative;
+            z-index: 2;
+        }
+        .mode-select p {
+            margin-bottom: 14px;
+            font-size: 14px;
+            color: var(--text);
+            font-weight: 500;
+        }
+        .mode-select label {
+            margin-right: 32px;
+            cursor: pointer;
+            color: var(--text-secondary);
+            font-size: 13px;
+            transition: color 0.2s;
+        }
+        .mode-select label:hover {
+            color: var(--text);
+        }
+        /* 配置面板按钮 */
+        .config-btn {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            color: var(--accent);
+            padding: 10px 16px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            transition: all 0.2s;
+            position: relative;
+            z-index: 2;
+        }
+        .config-btn:hover {
+            border-color: var(--accent);
+            background: var(--accent-soft);
+        }
+        .config-panel {
+            display: none;
+            margin-top: 12px;
+            padding: 18px;
+            background: var(--surface);
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            position: relative;
+            z-index: 2;
+        }
+        .config-panel p {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+            line-height: 1.6;
+        }
+        .config-actions {
+            margin-top: 12px;
+            display: flex;
+            gap: 8px;
+        }
+        .config-actions button {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            font-family: inherit;
+            transition: all 0.15s;
+        }
+        .config-actions button:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
         /* 底部 */
-        .foot{text-align:center;padding:40px 24px 48px;border-top:1px solid rgba(255,255,255,0.04)}
-        .foot p{font-size:12px;color:var(--dim);letter-spacing:0.02em}
+        .foot {
+            text-align: center;
+            padding: 40px 24px 48px;
+            border-top: 1px solid var(--border);
+            position: relative;
+            z-index: 2;
+        }
+        .foot p {
+            font-size: 12px;
+            color: var(--text-tertiary);
+            letter-spacing: 0.02em;
+        }
     </style>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
 </head>
 <body>
     <nav class="nav">
         <div class="nav-in">
-            <a href="https://www.agi188.work" class="nav-brand">AGI188</a>
+            <div class="nav-brand">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="vertical-align: middle; margin-right: 6px;">
+                    <rect x="3" y="3" width="7" height="9" rx="1" fill="#2997ff"/>
+                    <rect x="14" y="3" width="7" height="5" rx="1" fill="#bf5af2"/>
+                    <rect x="14" y="12" width="7" height="9" rx="1" fill="#30d158"/>
+                    <rect x="3" y="16" width="7" height="5" rx="1" fill="#ffd60a"/>
+                </svg>
+                商机数据自动处理工具
+            </div>
             <ul class="nav-r">
                 <li><a href="https://www.agi188.work#tools">返回工具集</a></li>
             </ul>
         </div>
     </nav>
 
-    <h1>📊 商机数据自动处理工具</h1>
+    <div class=main>
+    <h1>
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="vertical-align: middle; margin-right: 10px;">
+            <rect x="3" y="3" width="7" height="9" rx="1" fill="#2997ff"/>
+            <rect x="14" y="3" width="7" height="5" rx="1" fill="#bf5af2"/>
+            <rect x="14" y="12" width="7" height="9" rx="1" fill="#30d158"/>
+            <rect x="3" y="16" width="7" height="5" rx="1" fill="#ffd60a"/>
+        </svg>
+        商机数据自动处理工具
+    </h1>
     <p class="subtitle">一键完成9步数据清洗 · 价格匹配 · 格式整理</p>
 
         <div class="features">
@@ -174,8 +413,8 @@
             <div class="feature-item">✅ 自动命名文件</div>
         </div>
 
-        <div style="margin: 32px 0; padding: 24px; background: rgba(255,255,255,0.03); border-radius: 20px; border: 1px solid var(--border);">
-            <p style="margin-bottom: 16px; font-size: 15px; color: var(--text); font-weight: 500;">选择处理模式:</p>
+        <div class="mode-select">
+            <p>选择处理模式:</p>
             <label style="margin-right: 32px; cursor: pointer; color: var(--sub); font-size: 14px;">
                 <input type="radio" name="processMode" value="standard" checked style="margin-right: 8px;"> 标准处理(原9步)
             </label>
@@ -185,10 +424,10 @@
         </div>
 
         <div style="margin: 15px 0;">
-            <button id="toggleConfig" style="background: #1e1e30; border: 1px solid #00d4ff; color: #00d4ff; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 14px;">
+            <button id="toggleConfig" onclick="window.toggleConfig()" class="config-btn">
                 ⚙️ 展开自定义课程价格配置
             </button>
-            <div id="configPanel" style="display: none; margin-top: 10px; padding: 15px; background: #1e1e30; border-radius: 8px; border: 1px solid #2d2d4a;">
+            <div id="configPanel" class="config-panel">
                 <p style="font-size: 13px; color: #aaa; margin-bottom: 10px;">
                     在这里配置课程名称和价格的对应关系,一行一个,格式:课程名称 价格(空格分隔)<br>
                     留空则使用默认的16个课程价格配置
@@ -198,8 +437,8 @@
 国考省考事考省心畅学计划 3980
 ..."></textarea>
                 <div style="margin-top: 10px;">
-                    <button id="loadDefault" style="background: #252538; border: 1px solid #333355; color: #00d4ff; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;">加载默认配置</button>
-                    <button id="clearConfig" style="margin-left: 10px; background: #252538; border: 1px solid #333355; color: #00d4ff; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;">清空配置</button>
+                    <button id="loadDefault" onclick="window.loadDefaultConfig()" >加载默认配置</button>
+                    <button id="clearConfig" onclick="window.clearConfig()" style="margin-left: 10px; background: #252538; border: 1px solid #333355; color: #00d4ff; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;">清空配置</button>
                 </div>
             </div>
         </div>
@@ -233,7 +472,7 @@
         // 课程价格配置从 GitHub 动态拉取
         // 配置文件：price-config.json
         // ================================================
-        let defaultPriceMap = {};  // 初始为空，加载后填充
+        window.defaultPriceMap = {};  // 挂到 window 上，预定义函数可以访问
         let CONFIG_LOAD_STATUS = 'loading';  // loading / success / error
         const PRICE_CONFIG_VERSION = '20260428.17';  // 保留版本号机制
 
@@ -258,7 +497,7 @@
                     });
                 }
                 
-                defaultPriceMap = flatMap;
+                window.defaultPriceMap = flatMap;
                 CONFIG_LOAD_STATUS = 'success';
                 
                 console.log(`✅ 价格配置加载成功，共 ${Object.keys(flatMap).length} 条课程`);
@@ -291,7 +530,7 @@
             // 生成默认配置文本
             function getDefaultConfigText() {
                 let text = '';
-                for (const [name, price] of Object.entries(defaultPriceMap)) {
+                for (const [name, price] of Object.entries(window.defaultPriceMap)) {
                     text += `${name} ${price}\n`;
                 }
                 return text;
