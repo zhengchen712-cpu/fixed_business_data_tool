@@ -474,7 +474,7 @@
         // ================================================
         window.defaultPriceMap = {};  // 挂到 window 上，预定义函数可以访问
         let CONFIG_LOAD_STATUS = 'loading';  // loading / success / error
-        const PRICE_CONFIG_VERSION = '20260428.17';  // 保留版本号机制
+        const PRICE_CONFIG_VERSION = '20260623.1';  // 保留版本号机制
 
         // 从 GitHub 动态加载价格配置
         async function loadPriceConfig() {
@@ -537,15 +537,29 @@
             }
             // 页面加载时：等待配置拉取完成后，再做版本检测和初始化
             async function initConfig() {
-                // 先等 GitHub 配置加载完成（最多等3秒）
+                // 先等 GitHub 配置加载完成（最多等 5 秒）
                 const startTime = Date.now();
-                while (CONFIG_LOAD_STATUS === 'loading' && Date.now() - startTime < 3000) {
+                while (CONFIG_LOAD_STATUS === 'loading' && Date.now() - startTime < 5000) {
                     await new Promise(r => setTimeout(r, 100));
                 }
-                
+
                 const savedVersion = localStorage.getItem('priceConfigVersion');
+                const savedConfig = localStorage.getItem('savedPriceConfig');
                 const defaultText = getDefaultConfigText();
-                
+                const defaultIsEmpty = !defaultText.trim();
+
+                // GitHub 拉取失败 + 远端配置为空：不要覆盖 localStorage，优先显示上次缓存
+                if (defaultIsEmpty) {
+                    if (savedConfig && savedConfig.trim()) {
+                        textarea.value = savedConfig;
+                        console.warn('⚠️ GitHub 配置拉取失败，使用上次本地缓存');
+                    } else {
+                        textarea.value = '';
+                        textarea.placeholder = '⚠️ 默认配置拉取失败，请检查网络后刷新页面';
+                    }
+                    return;
+                }
+
                 // 版本不一致，强制重置为最新默认配置
                 if (savedVersion !== PRICE_CONFIG_VERSION) {
                     textarea.value = defaultText;
@@ -553,8 +567,7 @@
                     localStorage.setItem('priceConfigVersion', PRICE_CONFIG_VERSION);
                     console.log(`🔄 配置已自动更新到版本: ${PRICE_CONFIG_VERSION}`);
                 } else {
-                    // 版本一致，用本地保存的配置
-                    const savedConfig = localStorage.getItem('savedPriceConfig');
+                    // 版本一致，用本地保存的配置；本地为空才回退默认
                     if (savedConfig === null || savedConfig === '') {
                         textarea.value = defaultText;
                         localStorage.setItem('savedPriceConfig', defaultText);
